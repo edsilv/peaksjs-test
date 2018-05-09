@@ -23,6 +23,17 @@
     <script>
 
         let waveform;
+        let length;
+
+        function normalise(num, min, max) {
+            return (num - min) / (max - min);
+        }
+
+        function scaleX(x) {
+            var n = normalise(x, 0, length);
+            n = n * canvas.width;
+            return n;
+        }
 
         function scaleY(amplitude, height) {
             var range = 256;
@@ -37,11 +48,14 @@
                 startPixels = frameOffset;
             }
 
-            var limit = frameOffset + width;
+            // var limit = frameOffset + width;
 
-            if (endPixels > limit) {
-                endPixels = limit;
-            }
+            // if (endPixels > limit) {
+            //     endPixels = limit;
+            // }
+
+
+            endPixels = length;
 
             var adapter = waveformData.adapter;
             var x, val;
@@ -50,17 +64,17 @@
 
             for (x = startPixels; x < endPixels; x++) {
                 val = adapter.at(2 * x);
-                context.lineTo(x - frameOffset + 0.5, scaleY(val, height) + 0.5);
+                context.lineTo(scaleX(x - frameOffset) + 0.5, scaleY(val, height) + 0.5);
             }
 
-            console.log(x);
+            //console.log(x);
 
             for (x = endPixels - 1; x >= startPixels; x--) {
                 val = adapter.at(2 * x + 1);
-                context.lineTo(x - frameOffset + 0.5, scaleY(val, height) + 0.5);
+                context.lineTo(scaleX(x - frameOffset) + 0.5, scaleY(val, height) + 0.5);
             }
 
-            console.log(x);
+            //console.log(x);
 
             context.closePath();
         }
@@ -69,8 +83,6 @@
 
             const canvas = document.getElementById('canvas');
             const ctx = canvas.getContext('2d');
-
-            var length = waveform.offset_length;
 
             drawWaveform(ctx, waveform, 0, 0, length, canvas.width, canvas.height);
 
@@ -87,6 +99,7 @@
 
             xhr.addEventListener('load', (progressEvent) => {
                 waveform = WaveformData.create(progressEvent.target);
+                length = waveform.offset_length;
                 draw();
             });
 
