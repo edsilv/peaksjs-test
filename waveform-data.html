@@ -54,24 +54,23 @@
             //     endPixels = limit;
             // }
 
-
-            endPixels = length;
+            var increment = length / width;
 
             var adapter = waveformData.adapter;
             var x, val;
 
             context.beginPath();
 
-            for (x = startPixels; x < endPixels; x++) {
+            for (x = startPixels; x < endPixels; x += increment) {
                 val = adapter.at(2 * x);
-                context.lineTo(scaleX(x - frameOffset) + 0.5, scaleY(val, height) + 0.5);
+                context.lineTo(scaleX(x - frameOffset), scaleY(val, height));
             }
 
             //console.log(x);
 
-            for (x = endPixels - 1; x >= startPixels; x--) {
+            for (x = endPixels - 1; x >= startPixels; x -= increment) {
                 val = adapter.at(2 * x + 1);
-                context.lineTo(scaleX(x - frameOffset) + 0.5, scaleY(val, height) + 0.5);
+                context.lineTo(scaleX(x - frameOffset), scaleY(val, height));
             }
 
             //console.log(x);
