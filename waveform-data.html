@@ -18,47 +18,62 @@
 </head>
 <body>
 
-    <canvas id="canvas" width="800" height="300"></canvas>
+    <canvas id="canvas" width="600" height="300"></canvas>
 
     <script>
 
         let waveform;
 
+        function scaleY(amplitude, height) {
+            var range = 256;
+            var offset = 128;
+
+            return height - ((amplitude + offset) * height) / range;
+        }
+
+        function drawWaveform(context, waveformData, frameOffset, startPixels, endPixels, width, height) {
+            
+            if (startPixels < frameOffset) {
+                startPixels = frameOffset;
+            }
+
+            var limit = frameOffset + width;
+
+            if (endPixels > limit) {
+                endPixels = limit;
+            }
+
+            var adapter = waveformData.adapter;
+            var x, val;
+
+            context.beginPath();
+
+            for (x = startPixels; x < endPixels; x++) {
+                val = adapter.at(2 * x);
+                context.lineTo(x - frameOffset + 0.5, scaleY(val, height) + 0.5);
+            }
+
+            console.log(x);
+
+            for (x = endPixels - 1; x >= startPixels; x--) {
+                val = adapter.at(2 * x + 1);
+                context.lineTo(x - frameOffset + 0.5, scaleY(val, height) + 0.5);
+            }
+
+            console.log(x);
+
+            context.closePath();
+        }
+
         function draw() {
 
             const canvas = document.getElementById('canvas');
-
-            // const interpolateWidth = (total_width) => {
-            //     return (x) => x / total_width;
-            //     //return (size) => total_width - ((size + 128) * total_height) / amplitude;
-            // };
-
-            const interpolateHeight = (total_height) => {
-                const amplitude = 256;
-                return (size) => total_height - ((size + 128) * total_height) / amplitude;
-            };
-
-            const y = interpolateHeight(canvas.height);
             const ctx = canvas.getContext('2d');
 
-            ctx.fillStyle = "#009900";
-            ctx.strokeStyle = "#0000ff";
+            var length = waveform.offset_length;
 
-            ctx.beginPath();
+            drawWaveform(ctx, waveform, 0, 0, length, canvas.width, canvas.height);
 
-            // from 0 to 100
-            waveform.min.forEach((val, x) => {
-                x2 = x + 0.5;
-                var y2 = y(val) + 0.5;
-                ctx.lineTo(x2, y2);
-            });
-
-            // then looping back from 100 to 0
-            waveform.max.reverse().forEach((val, x) => {
-                ctx.lineTo((waveform.offset_length - x) + 0.5, y(val) + 0.5);
-            });
-
-            ctx.closePath();
             ctx.fill();
         }
 
