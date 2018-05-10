@@ -54,7 +54,7 @@
             //     endPixels = limit;
             // }
 
-            var increment = length / (width * 2.5);
+            var increment = endPixels / (width * 2.5);
 
             var adapter = waveformData.adapter;
             var x, val;
@@ -66,14 +66,10 @@
                 context.lineTo(scaleX(x - frameOffset), scaleY(val, height));
             }
 
-            //console.log(x);
-
             for (x = endPixels - 1; x >= startPixels; x -= increment) {
                 val = adapter.at(2 * x + 1);
                 context.lineTo(scaleX(x - frameOffset), scaleY(val, height));
             }
-
-            //console.log(x);
 
             context.closePath();
         }
