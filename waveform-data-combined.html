@@ -106,7 +106,7 @@
                 // set new combined length
                 wf1Data.setUint32(16, wf1Length + wf2Length);
 
-                var combinedData = new Uint32Array(wf1Data.length + wf2SampleData.length);
+                var combinedData = new Uint32Array(wf1Data.byteLength + wf2SampleData.byteLength);
                 combinedData.set(wf1Data);
                 combinedData.set(wf2SampleData, wf1Length);
 
