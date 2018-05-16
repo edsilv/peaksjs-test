@@ -94,20 +94,24 @@
 
             xhr.addEventListener('load', (progressEvent) => {
 
-                const data = new Int16Array(progressEvent.target.response);
+                var wf1Data = new DataView(progressEvent.target.response);
+                var wf2Data = new DataView(progressEvent.target.response);
+                var wf1Length = wf1Data.getUint32(16);
 
-                console.log(data.length);
+                var wf2Length = wf2Data.getUint32(16);
 
-                var combined = new Int16Array([
-                    ...data,
-                    ...data
-                ]);
+                // skip first 20 bytes of second file
+                var wf2SampleData = new DataView(wf2Data.buffer, 20, wf2Data.buffer.length - 20);
 
-                console.log(combined.length);
+                // set new combined length
+                wf1Data.setUint32(16, wf1Length + wf2Length);
 
-                //waveform = WaveformData.create(data.buffer);
-                waveform = WaveformData.create(combined.buffer);
-                length = waveform.offset_length;
+                var combinedData = new Uint32Array(wf1Data.length + wf2SampleData.length);
+                combinedData.set(wf1Data);
+                combinedData.set(wf2SampleData, wf1.length);
+
+                waveform = WaveformData.create(combinedData.buffer);
+                //length = waveform.offset_length;
                 draw();
             });
 
