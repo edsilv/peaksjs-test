@@ -96,17 +96,17 @@
 
                 var wf1Data = new DataView(progressEvent.target.response);
                 var wf2Data = new DataView(progressEvent.target.response);
-                var wf1Length = wf1Data.getUint32(16);
+                var wf1Length = wf1Data.getUint32(16, true);
 
-                var wf2Length = wf2Data.getUint32(16);
+                var wf2Length = wf2Data.getUint32(16, true);
 
                 // skip first 20 bytes of second file
-                var wf2SampleData = new DataView(wf2Data.buffer, 20, wf2Data.buffer.length - 20);
+                var wf2SampleData = new DataView(wf2Data.buffer, 20, wf2Data.buffer.byteLength - 20);
 
                 // set new combined length
                 wf1Data.setUint32(16, wf1Length + wf2Length);
 
-                var combinedData = new Uint32Array(wf1Data.byteLength + wf2SampleData.byteLength);
+                var combinedData = new Int8Array(wf1Length + wf2Length);
                 combinedData.set(wf1Data);
                 combinedData.set(wf2SampleData, wf1Length);
 
