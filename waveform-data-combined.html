@@ -95,9 +95,18 @@
             xhr.addEventListener('load', (progressEvent) => {
 
                 const data = new Int16Array(progressEvent.target.response);
+
                 console.log(data.length);
 
-                waveform = WaveformData.create(data.buffer);
+                var combined = new Int16Array([
+                    ...data,
+                    ...data
+                ]);
+
+                console.log(combined.length);
+
+                //waveform = WaveformData.create(data.buffer);
+                waveform = WaveformData.create(combined.buffer);
                 length = waveform.offset_length;
                 draw();
             });
