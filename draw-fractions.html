@@ -24,15 +24,15 @@
 
     <script>
 
-        var canvas, ctx, width, height, waveforms, length, offset;
+        var canvas, ctx;
 
         function normalise(num, min, max) {
             return (num - min) / (max - min);
         }
 
-        function scaleX(x) {
-            var n = normalise(x, 0, length);
-            n = n * (canvas.width / waveforms.length);
+        function scaleX(x, l, r) {
+            var n = normalise(x, 0, l);
+            n = n * r;
             return n;
         }
 
@@ -43,14 +43,16 @@
             return height - ((amplitude + offset) * height) / range;
         }
 
-        function drawWaveforms() {
+        function drawWaveforms(waveforms) {
 
             ctx.beginPath();
 
             waveforms.forEach((wf, index) => {
 
-                offset = (width / waveforms.length) * index;
-                drawWaveform(wf);
+                var offset = (canvas.width / waveforms.length) * index;
+                // canvas. of each waveform when drawn
+                var ratio = canvas.width / waveforms.length;
+                drawWaveform(wf, offset, ratio);
 
             });
 
@@ -59,14 +61,14 @@
             ctx.fill();
         }
 
-        function drawWaveform(wf) {
+        function drawWaveform(wf, offset, width) {
 
             var data = new Int16Array(wf);
             var waveform = WaveformData.create(data.buffer);
-            length = waveform.offset_length;
+            var length = waveform.offset_length;
 
             // how many pixels to skip between peaks
-            var increment = length / width;
+            var increment = length / canvas.width;
 
             var adapter = waveform.adapter;
             var x, val;
@@ -76,13 +78,13 @@
             // draw top peaks
             for (x = 0; x < length; x += increment) {
                 val = adapter.at(2 * x);
-                ctx.lineTo(scaleX(x) + offset, scaleY(val, height));
+                ctx.lineTo(scaleX(x, length, width) + offset, scaleY(val, canvas.height));
             }
 
             // draw bottom peaks
             for (x = length - 1; x >= 0; x -= increment) {
                 val = adapter.at(2 * x + 1);
-                ctx.lineTo(scaleX(x) + offset, scaleY(val, height));
+                ctx.lineTo(scaleX(x, length, width) + offset, scaleY(val, canvas.height));
             }
         }
 
@@ -111,19 +113,15 @@
             canvas = document.getElementById('canvas');
             ctx = canvas.getContext('2d');
 
-            width = canvas.width;
-            height = canvas.height;
-
-            waveforms = ['vdc_100052359795.0x000018.dat', 'vdc_100052359795.0x00001a.dat'];
+            var waveforms = ['vdc_100052359795.0x000018.dat', 'vdc_100052359795.0x00001a.dat'];
             //waveforms = ['vdc_100052359795.0x000018.dat'];
 
             var promises = waveforms.map((wf) => {
                 return get(wf);
             });
 
-            Promise.all(promises).then((wf) => {
-                waveforms = wf;
-                drawWaveforms();
+            Promise.all(promises).then((waveforms) => {
+                drawWaveforms(waveforms);
             });
 
         });
