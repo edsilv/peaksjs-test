@@ -42,6 +42,15 @@
             return height - ((amplitude + offset) * height) / range;
         }
 
+        /**
+        * @param {CanvasRenderingContext2D} context - The CanvasRenderingContext2D to draw to.
+        * @param {object} waveformData - The waveform data to draw.
+        * @param {number} frameOffset - The amount to offset the viewport left position by.
+        * @param {number} startPixels - The point in the waveform to start drawing it.
+        * @param {number} endPixels - The point in the waveform to finish drawing it.
+        * @param {number} width - The width to draw the waveform
+        * @param {number} height -  The height to draw the waveform
+        */
         function drawWaveform(context, waveformData, frameOffset, startPixels, endPixels, width, height) {
             
             if (startPixels < frameOffset) {
@@ -61,11 +70,13 @@
 
             context.beginPath();
 
+            // draw top peaks
             for (x = startPixels; x < endPixels; x += increment) {
                 val = adapter.at(2 * x);
                 context.lineTo(scaleX(x - frameOffset), scaleY(val, height));
             }
 
+            // draw bottom peaks
             for (x = endPixels - 1; x >= startPixels; x -= increment) {
                 val = adapter.at(2 * x + 1);
                 context.lineTo(scaleX(x - frameOffset), scaleY(val, height));
