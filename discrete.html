@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>waveform-data test</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://unpkg.com/waveform-data@2.0.1/dist/waveform-data.js"></script>
+    <style>
+        body {
+            background-color: beige;
+        }
+
+        canvas {
+            border: 1px solid red;
+        }
+    </style>
+</head>
+
+<body>
+
+    <canvas id="canvas" width="600" height="300"></canvas>
+
+    <script>
+
+        var canvas, ctx;
+        var barWidth = 2;
+        var barSpacing = 6 ;
+
+        function normalise(num, min, max) {
+            return (num - min) / (max - min);
+        }
+
+        function scaleX(x, l, r) {
+            var n = normalise(x, 0, l);
+            n = n * r;
+            return n;
+        }
+
+        function scaleY(amplitude, height) {
+            // var range = 256;
+            // var offset = 128;
+            var range = 60;
+            var offset = 70;
+
+            return height - ((amplitude + offset) * height) / range;
+        }
+
+        function drawWaveforms(waveforms) {
+
+            ctx.fillStyle = "#0000008c";// "rgba(0, 0, 0, 0.5)";
+
+            waveforms.forEach((wf, index) => {
+
+                var offset = (canvas.width / waveforms.length) * index;
+                // width of each waveform when drawn
+                var width = canvas.width / waveforms.length;
+                drawWaveform(wf, offset, width);
+
+            });
+        }
+
+        function drawWaveform(wf, offset, width) {
+
+            var data = new Int16Array(wf);
+            var waveform = WaveformData.create(data.buffer);
+            var length = waveform.offset_length;
+
+            // faster to not draw every peak
+            var increment = (length / canvas.width) * barSpacing;
+
+            var adapter = waveform.adapter;
+            var x, val;
+
+            ctx.moveTo(offset, canvas.height / 2);
+
+            for (x = 0; x < length; x += increment) {
+                val = adapter.at(2 * x);
+                var xpos = scaleX(x, length, width) + offset;
+                var height = scaleY(val / 2, canvas.height);
+                var ypos = (canvas.height / 2) - (height / 2);
+                ctx.rect(xpos, ypos, barWidth, height);
+                ctx.fill();
+                //ctx.lineTo(scaleX(x, length, width) + offset, scaleY(val, canvas.height));
+            }
+
+            // // draw top peaks
+            // for (x = 0; x < length; x += increment) {
+            //     val = adapter.at(2 * x);
+            //     ctx.lineTo(scaleX(x, length, width) + offset, scaleY(val, canvas.height));
+            // }
+
+            // // draw bottom peaks
+            // for (x = length - 1; x >= 0; x -= increment) {
+            //     val = adapter.at(2 * x + 1);
+            //     ctx.lineTo(scaleX(x, length, width) + offset, scaleY(val, canvas.height));
+            // }
+        }
+
+        function get(url) {
+            return new Promise(function (resolve, reject) {
+                var xhr = new XMLHttpRequest();
+                xhr.responseType = 'arraybuffer';
+                xhr.open('GET', url);
+                xhr.addEventListener('load', (progressEvent) => {
+                    if (xhr.status == 200) {
+                        resolve(progressEvent.target.response);
+                    }
+                    else {
+                        reject(Error(xhr.statusText));
+                    }
+                });
+                xhr.onerror = function () {
+                    reject(Error("Network Error"));
+                };
+                xhr.send();
+            });
+        }
+
+        document.addEventListener("DOMContentLoaded", function (event) {
+
+            canvas = document.getElementById('canvas');
+            ctx = canvas.getContext('2d');
+
+            var waveforms = ['vdc_100052359795.0x000018.dat', 'vdc_100052359795.0x00001a.dat'];
+            //waveforms = ['vdc_100052359795.0x000018.dat'];
+
+            var promises = waveforms.map((wf) => {
+                return get(wf);
+            });
+
+            Promise.all(promises).then((waveforms) => {
+                drawWaveforms(waveforms);
+            });
+
+        });
+
+    </script>
+</body>
+
+</html>
