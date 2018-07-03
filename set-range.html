@@ -37,12 +37,6 @@
         var offset = 70;
         var color = "#0000008c";
 
-        var resetButton = document.querySelector('#reset');
-
-        resetButton.addEventListener('click', () => {
-            reset();
-        });
-
         function normalise(num, min, max) {
             return (num - min) / (max - min);
         }
@@ -129,6 +123,15 @@
             ctx = canvas.getContext('2d');
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+            var resetButton = document.querySelector('#reset');
+
+            resetButton.addEventListener('click', () => {
+                reset();
+            });
+
+            var startInput = document.querySelector('#start');
+            var endInput = document.querySelector('#end');
+
             var promises = datFiles.map((wf) => {
                 return get(wf);
             });
@@ -151,9 +154,6 @@
                 });
 
                 // use the start and end values to offset the waveforms
-                var startInput = document.querySelector('#start');
-                var endInput = document.querySelector('#end');
-
                 var start = Number(startInput.value) || 0;
                 var end = Number(endInput.value) || getFullDuration(waveformsParsed);
 
