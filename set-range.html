@@ -6,10 +6,20 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title>waveform-data test</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
     <script src="https://unpkg.com/waveform-data@2.0.1/dist/waveform-data.js"></script>
+    <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
     <style>
+        body {
+            padding: 40px;
+        }
         canvas {
             border: 1px solid grey;
+        }
+        #slider-range {
+            margin-top: 20px;
+            width: 600px;
         }
     </style>
 </head>
@@ -22,6 +32,7 @@
         <input type="text" id="start" value="0" placeholder="start">
         <input type="text" id="end" placeholder="end">
         <button id="reset">Reset</button>
+        <div id="slider-range"></div>
     </div>
 
     <script>
@@ -107,7 +118,7 @@
             var duration = 0;
 
             waveforms.forEach((wf) => {
-                duration += (wf.end - wf.start);
+                duration += wf.duration;
             });
 
             return duration;
@@ -115,16 +126,32 @@
 
         function offsetWaveforms(waveforms, start, end) {
 
-            var offset = [];
+            var i = waveforms.length;
 
-            // loop through waveforms until you reach the start
-
-            for (let i = 0; i < waveforms.length; i++) {
+            while (i--) {
                 var waveform = waveforms[i];
-                
+                // if waveform starts after end, or ends before start, remove it.
+                if (waveform.start > end || waveform.end < start) { 
+                    waveforms.splice(i, 1);
+                } 
             }
 
-            //waveform.offset(offsetStart, offsetEnd);
+            if (waveforms.length === 1) {
+                var wf = waveforms[0].waveform;
+                var offsetStart = start * wf.pixels_per_second;
+                var offsetEnd = end * wf.pixels_per_second;
+                wf.offset(offsetStart, offsetEnd);
+            } else {
+                var firstWaveform = waveforms[0].waveform;
+                var lastWaveform = waveforms[waveforms.length - 1].waveform;
+
+                var offsetStart = start * firstWaveform.pixels_per_second;
+                firstWaveform.offset(offsetStart, firstWaveform.offset_length);
+
+                var offsetEnd = end * lastWaveform.pixels_per_second;
+                lastWaveform.offset(0, offsetEnd);
+            }
+
         }
 
         document.addEventListener("DOMContentLoaded", function (event) {
@@ -167,6 +194,7 @@
                         waveform: waveform,
                         start: start,
                         end: start + duration,
+                        duration: duration,
                         peaks: waveform.offset_length
                     });
 
@@ -178,14 +206,35 @@
                 var start = Number(startInput.value) || 0;
                 var end = Number(endInput.value) || getFullDuration(waveformsParsed);
 
+                if (start === end || end <= start) {
+                    throw new Error('invalid start or end');
+                }
+
                 startInput.value = start;
                 endInput.value = end;
+
+                $('#slider-range').slider({
+                    max: getFullDuration(waveformsParsed),
+                    values: [start, end]
+                });
 
                 offsetWaveforms(waveformsParsed, start, end);
 
                 drawWaveforms(waveformsParsed);
             });
         }
+
+        $(function() {
+
+            $("#slider-range").slider({
+                range: true,
+                min: 0,
+                slide: function(event, ui) {
+                    $("#start").val($("#slider-range").slider("values", 0));
+                    $("#end").val($("#slider-range").slider("values", 1));
+                }
+            });
+        });
 
     </script>
 </body>
