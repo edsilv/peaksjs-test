@@ -28,6 +28,7 @@
         var canvas, ctx;
 
         var barWidth = 2;
+        var minPeakHeight = barWidth;
         var barSpacing = 6;
         var range = 60;
         var offset = 70;
@@ -44,21 +45,19 @@
         }
 
         function scaleY(amplitude, height) {
-            return height - ((amplitude + offset) * height) / range;
+            var h = height - ((amplitude + offset) * height) / range;
+            return Math.max(minPeakHeight, Math.abs(h));
         }
 
         function drawWaveforms(waveforms) {
 
-            ctx.fillStyle = color;// "rgba(0, 0, 0, 0.5)";
+            ctx.fillStyle = color;
 
             waveforms.forEach((wf, index) => {
-
                 var offset = (canvas.width / waveforms.length) * index;
                 // width of each waveform when drawn
                 var width = canvas.width / waveforms.length;
-
                 drawWaveform(wf, offset, width);
-
             });
         }
 
@@ -90,8 +89,7 @@
                 xhr.addEventListener('load', (progressEvent) => {
                     if (xhr.status == 200) {
                         resolve(progressEvent.target.response);
-                    }
-                    else {
+                    } else {
                         reject(Error(xhr.statusText));
                     }
                 });
