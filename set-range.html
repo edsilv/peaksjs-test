@@ -107,10 +107,24 @@
             var duration = 0;
 
             waveforms.forEach((wf) => {
-                duration += wf.duration;
+                duration += (wf.end - wf.start);
             });
 
             return duration;
+        }
+
+        function offsetWaveforms(waveforms, start, end) {
+
+            var offset = [];
+
+            // loop through waveforms until you reach the start
+
+            for (let i = 0; i < waveforms.length; i++) {
+                var waveform = waveforms[i];
+                
+            }
+
+            //waveform.offset(offsetStart, offsetEnd);
         }
 
         document.addEventListener("DOMContentLoaded", function (event) {
@@ -140,16 +154,23 @@
 
                 var waveformsParsed = [];
 
+                var start = 0;
+
                 waveforms.forEach((wf) => {
 
                     var data = new Int16Array(wf);
                     var waveform = WaveformData.create(data.buffer);
 
+                    var duration = waveform.offset_length / waveform.pixels_per_second;
+
                     waveformsParsed.push({
                         waveform: waveform,
-                        duration: waveform.offset_length / waveform.pixels_per_second,
+                        start: start,
+                        end: start + duration,
                         peaks: waveform.offset_length
                     });
+
+                    start += duration;
 
                 });
 
@@ -159,6 +180,8 @@
 
                 startInput.value = start;
                 endInput.value = end;
+
+                offsetWaveforms(waveformsParsed, start, end);
 
                 drawWaveforms(waveformsParsed);
             });
