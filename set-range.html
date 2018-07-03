@@ -21,9 +21,12 @@
     <div>
         <input type="text" id="start" value="0" placeholder="start">
         <input type="text" id="end" placeholder="end">
+        <button id="reset">Reset</button>
     </div>
 
     <script>
+
+        var datFiles = ['vdc_100052359795.0x000018.dat', 'vdc_100052359795.0x00001a.dat'];
 
         var canvas, ctx;
 
@@ -33,6 +36,12 @@
         var range = 60;
         var offset = 70;
         var color = "#0000008c";
+
+        var resetButton = document.querySelector('#reset');
+
+        resetButton.addEventListener('click', () => {
+            reset();
+        });
 
         function normalise(num, min, max) {
             return (num - min) / (max - min);
@@ -100,18 +109,27 @@
             });
         }
 
+        function getFullDuration(waveforms) {
+            var duration = 0;
+
+            waveforms.forEach((wf) => {
+                duration += wf.duration;
+            });
+
+            return duration;
+        }
+
         document.addEventListener("DOMContentLoaded", function (event) {
+            reset();
+        });
+
+        function reset() {
 
             canvas = document.getElementById('canvas');
             ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            var start = document.querySelector('#start').value;
-            var end = document.querySelector('#end').value;
-
-            var waveforms = ['vdc_100052359795.0x000018.dat', 'vdc_100052359795.0x00001a.dat'];
-            //waveforms = ['vdc_100052359795.0x000018.dat'];
-
-            var promises = waveforms.map((wf) => {
+            var promises = datFiles.map((wf) => {
                 return get(wf);
             });
 
@@ -123,21 +141,28 @@
 
                     var data = new Int16Array(wf);
                     var waveform = WaveformData.create(data.buffer);
-                    var lengthPeaks = waveform.offset_length;
-                    var lengthSecs = lengthPeaks / waveform.pixels_per_second;
 
                     waveformsParsed.push({
                         waveform: waveform,
-                        duration: lengthSecs,
-                        peaks: lengthPeaks
+                        duration: waveform.offset_length / waveform.pixels_per_second,
+                        peaks: waveform.offset_length
                     });
 
                 });
 
+                // use the start and end values to offset the waveforms
+                var startInput = document.querySelector('#start');
+                var endInput = document.querySelector('#end');
+
+                var start = Number(startInput.value) || 0;
+                var end = Number(endInput.value) || getFullDuration(waveformsParsed);
+
+                startInput.value = start;
+                endInput.value = end;
+
                 drawWaveforms(waveformsParsed);
             });
-
-        });
+        }
 
     </script>
 </body>
