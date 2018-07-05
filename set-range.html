@@ -37,7 +37,8 @@
 
     <script>
 
-        var datFiles = ['vdc_100052359795.0x000018.dat', 'vdc_100052359795.0x00001a.dat'];
+        //var datFiles = ['vdc_100052359795.0x000018.dat', 'vdc_100052359795.0x00001a.dat'];
+        var datFiles = ['vdc_100052359795.0x000018.dat'];
 
         var canvas, ctx;
 
@@ -164,14 +165,14 @@
             ctx = canvas.getContext('2d');
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+            var startInput = document.querySelector('#start');
+            var endInput = document.querySelector('#end');
+
             var resetButton = document.querySelector('#reset');
 
             resetButton.addEventListener('click', () => {
                 reset();
             });
-
-            var startInput = document.querySelector('#start');
-            var endInput = document.querySelector('#end');
 
             var promises = datFiles.map((wf) => {
                 return get(wf);
@@ -188,7 +189,7 @@
                     var data = new Int16Array(wf);
                     var waveform = WaveformData.create(data.buffer);
 
-                    var duration = waveform.offset_length / waveform.pixels_per_second;
+                    var duration = waveform.duration; // waveform.offset_length / waveform.pixels_per_second;
 
                     waveformsParsed.push({
                         waveform: waveform,
