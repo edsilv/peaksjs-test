@@ -47,12 +47,12 @@
         //     return n;
         // }
 
-        // function scaleY(amplitude, height) {
-        //     var range = 256;
-        //     var offset = 128;
+        function scaleY(amplitude, height) {
+            var range = 64;
+            var offset = 64;
 
-        //     return height - ((amplitude + offset) * height) / range;
-        // }
+            return height - ((amplitude + offset) * height) / range;
+        }
 
         function getRndColor() {
             var r = 255*Math.random()|0,
@@ -81,7 +81,7 @@
 
             for (x = Math.floor(waveform.offset_start); x < Math.floor(waveform.offset_end); x += increment) {
                 val = adapter.at(x);
-                var height = Math.max(barwidth, Math.abs(val * 5));// Math.max(barwidth, Math.abs(val * 3));// scaleY(val, canvas.height);
+                var height = Math.max(barwidth, Math.abs(scaleY(val, canvas.height)));// Math.max(barwidth, Math.abs(val * 3));// scaleY(val, canvas.height);
                 var norm = normalise(x, waveform.offset_start, waveform.offset_end);
                 var xpos = Math.floor(canvas.width * norm) + barwidth;
                 var ypos = (canvas.height / 2) - (height / 2);
