@@ -65,14 +65,8 @@
             
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            //var increment = waveform.offset_length / (canvas.width * 2);
-
             var adapter = waveform.adapter;
             var x, val;
-
-            //ctx.fillStyle = getRndColor();
-
-            //var ratio = waveform.offset_length / canvas.width;
 
             var barspacing = 4;
             var barwidth = 2;
@@ -81,7 +75,7 @@
 
             for (x = Math.floor(waveform.offset_start); x < Math.floor(waveform.offset_end); x += increment) {
                 val = adapter.at(x);
-                var height = Math.max(barwidth, Math.abs(scaleY(val, canvas.height)));// Math.max(barwidth, Math.abs(val * 3));// scaleY(val, canvas.height);
+                var height = Math.max(barwidth, Math.abs(scaleY(val, canvas.height)));
                 var norm = normalise(x, waveform.offset_start, waveform.offset_end);
                 var xpos = Math.floor(canvas.width * norm) + barwidth;
                 var ypos = (canvas.height / 2) - (height / 2);
