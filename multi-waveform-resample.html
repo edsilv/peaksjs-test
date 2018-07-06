@@ -42,8 +42,8 @@
 
         var _waveforms, canvas, ctx, startInput, endInput, resetButton;
 
-        var barSpacing = 4;
-        var barWidth = 2;
+        //var barSpacing = 4;
+        var barWidth = 1;
         var range = 60;
         var offset = 70;
         var color = "#0000008c";
@@ -55,13 +55,30 @@
         function scaleY(amplitude, height) {
             var range = 64;
             var offset = 64;
-
             return height - ((amplitude + offset) * height) / range;
         }
 
-        function drawWaveforms(waveforms) {
+        function resampleWaveforms(waveforms, start, end) {
+            var duration = end - start;
+
+            // get the width in pixels for this duration
+            var norm = normalise(duration, 0, getFullDuration(waveforms));
+
+            var width = canvas.width * norm;
+
+            // divide that by the number of waveforms
+            width = width / waveforms.length;
+
+            // resample each to that width
+            waveforms.forEach((wf) => {
+                wf.waveform = wf.waveform.resample({ width: width });
+            });
+        }
+
+        function drawWaveforms(waveforms, start, end) {
 
             waveforms.forEach((wf, index) => {
+
                 var offset = (canvas.width / waveforms.length) * index;
                 // width of each waveform when drawn
                 var width = canvas.width / waveforms.length;
@@ -71,21 +88,19 @@
 
         function drawWaveform(wf, offset, width) {
 
-            // faster to not draw every peak
-            //var increment = (waveform.length / canvas.width) * barSpacing;
-
             var adapter = wf.waveform.adapter;
             var x, val;
 
-            var increment = Math.floor((wf.waveform.offset_length / width) * barSpacing);
+            //var increment = Math.floor((wf.waveform.offset_length / width) * barSpacing);
 
             ctx.moveTo(offset, canvas.height / 2);
 
-            for (x = Math.floor(wf.waveform.offset_start); x < Math.floor(wf.waveform.offset_end); x += increment) {
+            //for (x = Math.floor(wf.waveform.offset_start); x < Math.floor(wf.waveform.offset_end); x += increment) {
+            for (x = offset; x < width + offset; x++) {
                 val = adapter.at(x);
                 var height = Math.max(barWidth, Math.abs(scaleY(val, canvas.height)));
                 var norm = normalise(x, wf.waveform.offset_start, wf.waveform.offset_end);
-                var xpos = Math.floor(width * norm) + barWidth + offset;
+                var xpos = Math.floor(width * norm) + barWidth;
                 var ypos = (canvas.height / 2) - (height / 2);
                 ctx.fillRect(xpos, ypos, barWidth, height);
             }
@@ -142,10 +157,11 @@
                 var firstWaveform = waveforms[0].waveform;
                 var lastWaveform = waveforms[waveforms.length - 1].waveform;
 
-                var offsetStart = start * firstWaveform.pixels_per_second;
-                firstWaveform.offset(offsetStart, firstWaveform.offset_length);
-
-                var offsetEnd = end * lastWaveform.pixels_per_second;
+                var offsetStart = Math.floor(start * firstWaveform.pixels_per_second);
+                firstWaveform.offset(offsetStart, firstWaveform.duration * firstWaveform.pixels_per_second);
+                
+                end = end - lastWaveform.duration;
+                var offsetEnd = Math.floor(end * lastWaveform.pixels_per_second);
                 lastWaveform.offset(0, offsetEnd);
             }
 
@@ -155,7 +171,6 @@
 
             canvas = document.getElementById('canvas');
             ctx = canvas.getContext('2d');
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.fillStyle = color;
 
             startInput = document.querySelector('#start');
@@ -202,6 +217,8 @@
 
         function reset() {
 
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
             // use the start and end values to offset the waveforms
             var start = Number(startInput.value) || 0;
             var end = Number(endInput.value) || getFullDuration(_waveforms);
@@ -218,9 +235,19 @@
                 values: [start, end]
             });
 
-            offsetWaveforms(_waveforms, start, end);
+            var waveforms = [];
 
-            drawWaveforms(_waveforms);
+            // duplicate waveforms
+            _waveforms.forEach((wf) => {
+                waveforms.push(Object.assign({}, wf));
+            });
+
+            // resample each waveform to be a fraction of the selected width
+            resampleWaveforms(waveforms, start, end); 
+
+            offsetWaveforms(waveforms, start, end);
+
+            drawWaveforms(waveforms, start, end);
         }
 
         $(function() {
