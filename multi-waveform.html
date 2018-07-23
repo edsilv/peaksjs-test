@@ -111,27 +111,25 @@
             return { max, min };
         }
 
-        // const drawWaveform = (waveform, ctx, start, end) => {
-        //     for (let x = 0; x < ctx.canvas.width && x < waveform.length; x += barSpacing) {
-
-        //         const maxMin = getMaxAndMin(waveform, x + start, barSpacing);
-
-        //         const height = scaleY(maxMin.max - maxMin.min, ctx.canvas.height);
-        //         const y = (ctx.canvas.height - height) / 2;
-
-        //         ctx.fillRect(x, y, barWidth, height);
-        //     }
-        // }
-
         const drawWaveform = (waveform, ctx, start, end) => {
-            for (let x = 0; x < ctx.canvas.width && x < end; x += barSpacing) {
 
-                const maxMin = getMaxAndMin(waveform, x + start, barSpacing);
+            $("#start").val(start);
+            $("#end").val(end);
+
+            ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+            const increment = Math.floor(((end - start) / canvas.width) * barSpacing);
+
+            for (let x = start; x < end; x += increment) {
+
+                const maxMin = getMaxAndMin(waveform, x, increment);
 
                 const height = scaleY(maxMin.max - maxMin.min, ctx.canvas.height);
-                const y = (ctx.canvas.height - height) / 2;
+                const ypos = (ctx.canvas.height - height) / 2;
 
-                ctx.fillRect(x, y, barWidth, height);
+                const xpos = canvas.width * normalise(x, start, end);
+
+                ctx.fillRect(xpos, ypos, barWidth, height);
             }
         }
 
@@ -154,21 +152,6 @@
             });
         }
 
-        // const reset = () => {
-        //     canvas = document.getElementById('canvas');
-        //     ctx = canvas.getContext('2d');
-        //     ctx.clearRect(0, 0, canvas.width, canvas.height);
-        //     ctx.fillStyle = color;
-
-        //     const startInput = document.querySelector('#start');
-        //     const endInput = document.querySelector('#end');
-        //     const resetButton = document.querySelector('#reset');
-
-        //     resetButton.addEventListener('click', () => {
-        //         reset();
-        //     });
-        // }
-
         document.addEventListener("DOMContentLoaded", () => {
 
             const promises = datFiles.map((url) => {
@@ -179,7 +162,6 @@
 
                 canvas = document.getElementById('canvas');
                 ctx = canvas.getContext('2d');
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
                 ctx.fillStyle = color;
 
                 compositeWaveform = new CompositeWaveform(waveforms);
@@ -197,15 +179,11 @@
                     slide: function(event, ui) {
                         const start = $("#slider-range").slider("values", 0);
                         const end = $("#slider-range").slider("values", 1);
-                        //console.log(start, end);
-                        $("#start").val(start);
-                        $("#end").val(end);
-
-                        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-
                         drawWaveform(compositeWaveform, ctx, start, end);
                     }
                 });
+
+                drawWaveform(compositeWaveform, ctx, initialValues[0], initialValues[1]);
             });
 
         });
