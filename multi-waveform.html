@@ -25,7 +25,6 @@
 </head>
 
 <body>
-
     <canvas id="canvas" width="600" height="300"></canvas>
 
     <div>
@@ -36,170 +35,137 @@
     </div>
 
     <script>
+        const datFiles = ['vdc_100052359795.0x000018.dat', 'vdc_100052359795.0x00001a.dat'];
+        //const datFiles = ['vdc_100052359795.0x000018.dat'];
 
-        var datFiles = ['vdc_100052359795.0x000018.dat', 'vdc_100052359795.0x00001a.dat'];
-        //var datFiles = ['vdc_100052359795.0x000018.dat'];
+        const barSpacing = 4;
+        const barWidth = 2;
+        const range = 60;
+        const offset = 70;
+        const color = "#0000008c";
 
-        var canvas, ctx;
+        class CompositeWaveform {
+            constructor(waveforms) {
+                this._waveforms = [];
 
-        var barSpacing = 4;
-        var barWidth = 2;
-        var range = 60;
-        var offset = 70;
-        var color = "#0000008c";
+                this.length = 0;
 
-        function normalise(num, min, max) {
-            return (num - min) / (max - min);
-        }
+                waveforms.forEach((waveform) => {
+                    this._waveforms.push({
+                        start: this.length,
+                        end: this.length + waveform.adapter.length,
+                        waveform
+                    });
 
-        function scaleY(amplitude, height) {
-            var range = 64;
-            var offset = 64;
-
-            return height - ((amplitude + offset) * height) / range;
-        }
-
-        function drawWaveforms(waveforms) {
-
-            waveforms.forEach((wf, index) => {
-                var offset = (canvas.width / waveforms.length) * index;
-                // width of each waveform when drawn
-                var width = canvas.width / waveforms.length;
-                drawWaveform(wf, offset, width);
-            });
-        }
-
-        function drawWaveform(wf, offset, width) {
-
-            // faster to not draw every peak
-            //var increment = (waveform.length / canvas.width) * barSpacing;
-
-            var adapter = wf.waveform.adapter;
-            var x, val;
-
-            var increment = Math.floor((wf.waveform.offset_length / width) * barSpacing);
-
-            ctx.moveTo(offset, canvas.height / 2);
-
-            for (x = Math.floor(wf.waveform.offset_start); x < Math.floor(wf.waveform.offset_end); x += increment) {
-                val = adapter.at(x);
-                var height = Math.max(barWidth, Math.abs(scaleY(val, canvas.height)));
-                var norm = normalise(x, wf.waveform.offset_start, wf.waveform.offset_end);
-                var xpos = Math.floor(width * norm) + barWidth + offset;
-                var ypos = (canvas.height / 2) - (height / 2);
-                ctx.fillRect(xpos, ypos, barWidth, height);
+                    this.length += waveform.adapter.length;
+                });
             }
 
+            // Note: these could be optimised, assuming access is sequential
+
+            min(index) {
+                const waveform = this._find(index);
+
+                return waveform ? waveform.waveform.min_sample(index - waveform.start) : 0;
+            }
+
+            max(index) {
+                const waveform = this._find(index);
+
+                return waveform ? waveform.waveform.max_sample(index - waveform.start) : 0;
+            }
+
+            _find(index) {
+                const waveforms = this._waveforms.filter((waveform) => {
+                    return index >= waveform.start && index < waveform.end;
+                });
+
+                return waveforms.length > 0 ? waveforms[0] : null;
+            }
         }
 
-        function get(url) {
+        const normalise = (num, min, max) => {
+            return (num - min) / (max - min);
+        };
+
+        const scaleY = (amplitude, height) => {
+            const range = 256;
+
+            return amplitude * height / range;
+        };
+
+        const getMaxAndMin = (waveform, index, spacing) => {
+            let max = -127;
+            let min = 128;
+
+            for (let x = index; x < index + spacing; x++) {
+                if (waveform.max(x) > max) {
+                    max = waveform.max(x);
+                }
+
+                if (waveform.min(x) < min) {
+                    min = waveform.min(x);
+                }
+            }
+
+            return { max, min };
+        }
+
+        const drawWaveform = (waveform, ctx, start, end) => {
+            for (let x = 0; x < ctx.canvas.width && x < waveform.length; x += barSpacing) {
+
+                const maxMin = getMaxAndMin(waveform, x + start, barSpacing);
+
+                const height = scaleY(maxMin.max - maxMin.min, ctx.canvas.height);
+                const y = (ctx.canvas.height - height) / 2;
+
+                ctx.fillRect(x, y, barWidth, height);
+            }
+        }
+
+        const getWaveformData = (url) => {
             return new Promise(function (resolve, reject) {
-                var xhr = new XMLHttpRequest();
+                const xhr = new XMLHttpRequest();
                 xhr.responseType = 'arraybuffer';
                 xhr.open('GET', url);
                 xhr.addEventListener('load', (progressEvent) => {
                     if (xhr.status == 200) {
-                        resolve(progressEvent.target.response);
+                        resolve(WaveformData.create(progressEvent.target.response));
                     } else {
-                        reject(Error(xhr.statusText));
+                        reject(new Error(xhr.statusText));
                     }
                 });
                 xhr.onerror = function () {
-                    reject(Error("Network Error"));
+                    reject(new Error("Network Error"));
                 };
                 xhr.send();
             });
         }
 
-        function getFullDuration(waveforms) {
-            var duration = 0;
-
-            waveforms.forEach((wf) => {
-                duration += wf.duration;
-            });
-
-            return duration;
-        }
-
-        function offsetWaveforms(waveforms, start, end) {
-
-            var i = waveforms.length;
-
-            while (i--) {
-                var waveform = waveforms[i];
-                // if waveform starts after end, or ends before start, remove it.
-                if (waveform.start > end || waveform.end < start) { 
-                    waveforms.splice(i, 1);
-                } 
-            }
-
-            if (waveforms.length === 1) {
-                var wf = waveforms[0].waveform;
-                var offsetStart = start * wf.pixels_per_second;
-                var offsetEnd = end * wf.pixels_per_second;
-                wf.offset(offsetStart, offsetEnd);
-            } else {
-                var firstWaveform = waveforms[0].waveform;
-                var lastWaveform = waveforms[waveforms.length - 1].waveform;
-
-                var offsetStart = start * firstWaveform.pixels_per_second;
-                firstWaveform.offset(offsetStart, firstWaveform.offset_length);
-
-                var offsetEnd = end * lastWaveform.pixels_per_second;
-                lastWaveform.offset(0, offsetEnd);
-            }
-
-        }
-
-        document.addEventListener("DOMContentLoaded", function (event) {
-            reset();
-        });
-
-        function reset() {
-
+        const reset = () => {
             canvas = document.getElementById('canvas');
             ctx = canvas.getContext('2d');
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.fillStyle = color;
 
-            var startInput = document.querySelector('#start');
-            var endInput = document.querySelector('#end');
-            var resetButton = document.querySelector('#reset');
+            const startInput = document.querySelector('#start');
+            const endInput = document.querySelector('#end');
+            const resetButton = document.querySelector('#reset');
 
             resetButton.addEventListener('click', () => {
                 reset();
             });
 
-            var promises = datFiles.map((wf) => {
-                return get(wf);
+            const promises = datFiles.map((url) => {
+                return getWaveformData(url);
             });
 
             Promise.all(promises).then((waveforms) => {
-
-                var waveformsParsed = [];
-
-                var start = 0;
-
-                waveforms.forEach((wf) => {
-
-                    var data = new Int16Array(wf);
-                    var waveform = WaveformData.create(data.buffer);
-
-                    waveformsParsed.push({
-                        waveform: waveform,
-                        start: start,
-                        end: start + waveform.duration,
-                        duration: waveform.duration,
-                        length: waveform.offset_length
-                    });
-
-                    start += waveform.duration;
-
-                });
+                const compositeWaveform = new CompositeWaveform(waveforms);
 
                 // use the start and end values to offset the waveforms
-                var start = Number(startInput.value) || 0;
-                var end = Number(endInput.value) || getFullDuration(waveformsParsed);
+                const start = Number(startInput.value) || 0;
+                const end = Number(endInput.value) || compositeWaveform.length;
 
                 if (start === end || end <= start) {
                     throw new Error('invalid start or end');
@@ -208,29 +174,28 @@
                 startInput.value = start;
                 endInput.value = end;
 
-                $('#slider-range').slider({
-                    max: getFullDuration(waveformsParsed),
-                    values: [start, end]
+                drawWaveform(compositeWaveform, ctx, start, end);
+
+                $("#slider-range").slider({
+                    min: 0,
+                    max: compositeWaveform.length,
+                    slide: function(event, ui) {
+                        const start = $("#slider-range").slider("values", 0);
+                        const end = $("#slider-range").slider("values", 1);
+                        console.log(start, end);
+                        $("#start").val(start);
+                        $("#end").val(end);
+
+                        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+                        drawWaveform(compositeWaveform, ctx, start, end);
+                    }
                 });
 
-                offsetWaveforms(waveformsParsed, start, end);
-
-                drawWaveforms(waveformsParsed);
             });
         }
 
-        $(function() {
-
-            $("#slider-range").slider({
-                range: true,
-                min: 0,
-                slide: function(event, ui) {
-                    $("#start").val($("#slider-range").slider("values", 0));
-                    $("#end").val($("#slider-range").slider("values", 1));
-                }
-            });
-        });
-
+        document.addEventListener("DOMContentLoaded", reset);
     </script>
 </body>
 
