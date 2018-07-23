@@ -30,7 +30,6 @@
     <div>
         <input type="text" id="start" value="0" placeholder="start">
         <input type="text" id="end" placeholder="end">
-        <button id="reset">Reset</button>
         <div id="slider-range"></div>
     </div>
 
@@ -38,6 +37,7 @@
         const datFiles = ['vdc_100052359795.0x000018.dat', 'vdc_100052359795.0x00001a.dat'];
         //const datFiles = ['vdc_100052359795.0x000018.dat'];
 
+        let compositeWaveform;
         const barSpacing = 4;
         const barWidth = 2;
         const range = 60;
@@ -111,8 +111,20 @@
             return { max, min };
         }
 
+        // const drawWaveform = (waveform, ctx, start, end) => {
+        //     for (let x = 0; x < ctx.canvas.width && x < waveform.length; x += barSpacing) {
+
+        //         const maxMin = getMaxAndMin(waveform, x + start, barSpacing);
+
+        //         const height = scaleY(maxMin.max - maxMin.min, ctx.canvas.height);
+        //         const y = (ctx.canvas.height - height) / 2;
+
+        //         ctx.fillRect(x, y, barWidth, height);
+        //     }
+        // }
+
         const drawWaveform = (waveform, ctx, start, end) => {
-            for (let x = 0; x < ctx.canvas.width && x < waveform.length; x += barSpacing) {
+            for (let x = 0; x < ctx.canvas.width && x < end; x += barSpacing) {
 
                 const maxMin = getMaxAndMin(waveform, x + start, barSpacing);
 
@@ -142,47 +154,50 @@
             });
         }
 
-        const reset = () => {
-            canvas = document.getElementById('canvas');
-            ctx = canvas.getContext('2d');
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = color;
+        // const reset = () => {
+        //     canvas = document.getElementById('canvas');
+        //     ctx = canvas.getContext('2d');
+        //     ctx.clearRect(0, 0, canvas.width, canvas.height);
+        //     ctx.fillStyle = color;
 
-            const startInput = document.querySelector('#start');
-            const endInput = document.querySelector('#end');
-            const resetButton = document.querySelector('#reset');
+        //     const startInput = document.querySelector('#start');
+        //     const endInput = document.querySelector('#end');
+        //     const resetButton = document.querySelector('#reset');
 
-            resetButton.addEventListener('click', () => {
-                reset();
-            });
+        //     resetButton.addEventListener('click', () => {
+        //         reset();
+        //     });
+        // }
+
+        document.addEventListener("DOMContentLoaded", () => {
 
             const promises = datFiles.map((url) => {
                 return getWaveformData(url);
             });
 
             Promise.all(promises).then((waveforms) => {
-                const compositeWaveform = new CompositeWaveform(waveforms);
 
-                // use the start and end values to offset the waveforms
-                const start = Number(startInput.value) || 0;
-                const end = Number(endInput.value) || compositeWaveform.length;
+                canvas = document.getElementById('canvas');
+                ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = color;
 
-                if (start === end || end <= start) {
-                    throw new Error('invalid start or end');
-                }
+                compositeWaveform = new CompositeWaveform(waveforms);
 
-                startInput.value = start;
-                endInput.value = end;
+                const initialValues = [0, compositeWaveform.length];
 
-                drawWaveform(compositeWaveform, ctx, start, end);
+                $("#start").val(initialValues[0]);
+                $("#end").val(initialValues[1]);
 
                 $("#slider-range").slider({
+                    range: true,
                     min: 0,
                     max: compositeWaveform.length,
+                    values: initialValues,
                     slide: function(event, ui) {
                         const start = $("#slider-range").slider("values", 0);
                         const end = $("#slider-range").slider("values", 1);
-                        console.log(start, end);
+                        //console.log(start, end);
                         $("#start").val(start);
                         $("#end").val(end);
 
@@ -191,11 +206,9 @@
                         drawWaveform(compositeWaveform, ctx, start, end);
                     }
                 });
-
             });
-        }
 
-        document.addEventListener("DOMContentLoaded", reset);
+        });
     </script>
 </body>
 
