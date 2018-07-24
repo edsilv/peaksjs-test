@@ -90,15 +90,15 @@
 
         const scaleY = (amplitude, height) => {
             const range = 256;
-
-            return amplitude * height / range;
+            return Math.max(barWidth, (amplitude * height / range));
         };
 
-        const getMaxAndMin = (waveform, index, spacing) => {
+        const getMaxAndMin = (waveform, index, sampleSpacing) => {
             let max = -127;
             let min = 128;
 
-            for (let x = index; x < index + spacing; x++) {
+            for (let x = index; x < index + sampleSpacing; x++) {
+                
                 if (waveform.max(x) > max) {
                     max = waveform.max(x);
                 }
@@ -119,11 +119,11 @@
             ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
             const increment = Math.floor(((end - start) / canvas.width) * barSpacing);
-
+            const sampleSpacing = (canvas.width / barSpacing);
+            
             for (let x = start; x < end; x += increment) {
 
-                const maxMin = getMaxAndMin(waveform, x, increment);
-
+                const maxMin = getMaxAndMin(waveform, x, sampleSpacing);
                 const height = scaleY(maxMin.max - maxMin.min, ctx.canvas.height);
                 const ypos = (ctx.canvas.height - height) / 2;
 
