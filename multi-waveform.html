@@ -47,7 +47,7 @@
         class CompositeWaveform {
             constructor(waveforms) {
                 this._waveforms = [];
-
+                this.secondsPerPixel = Number.MAX_VALUE;
                 this.length = 0;
 
                 waveforms.forEach((waveform) => {
@@ -58,6 +58,7 @@
                     });
 
                     this.length += waveform.adapter.length;
+                    this.secondsPerPixel = Math.min(this.secondsPerPixel, waveform.seconds_per_pixel);
                 });
             }
 
@@ -113,8 +114,8 @@
 
         const drawWaveform = (waveform, ctx, start, end) => {
 
-            $("#start").val(start);
-            $("#end").val(end);
+            $("#start").val(Math.floor(start * waveform.secondsPerPixel));
+            $("#end").val(Math.floor(end * waveform.secondsPerPixel));
 
             ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
