@@ -48,7 +48,9 @@
             constructor(waveforms) {
                 this._waveforms = [];
                 this.secondsPerPixel = Number.MAX_VALUE;
+                this.pixelsPerSecond = Number.MAX_VALUE;
                 this.length = 0;
+                this.duration = 0;
 
                 waveforms.forEach((waveform) => {
                     this._waveforms.push({
@@ -58,7 +60,9 @@
                     });
 
                     this.length += waveform.adapter.length;
+                    this.duration += waveform.duration;
                     this.secondsPerPixel = Math.min(this.secondsPerPixel, waveform.seconds_per_pixel);
+                    this.pixelsPerSecond = Math.min(this.pixelsPerSecond, waveform.pixels_per_second);
                 });
             }
 
@@ -114,21 +118,23 @@
 
         const drawWaveform = (waveform, ctx, start, end) => {
 
-            $("#start").val(Math.floor(start * waveform.secondsPerPixel));
-            $("#end").val(Math.floor(end * waveform.secondsPerPixel));
+            $("#start").val(start);
+            $("#end").val(end);
 
             ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
-            const increment = Math.floor(((end - start) / canvas.width) * barSpacing);
+            const startpx = start * waveform.pixelsPerSecond;
+            const endpx = end * waveform.pixelsPerSecond;
+            const increment = Math.floor(((endpx - startpx) / canvas.width) * barSpacing);
             const sampleSpacing = (canvas.width / barSpacing);
             
-            for (let x = start; x < end; x += increment) {
+            for (let x = startpx; x < endpx; x += increment) {
 
                 const maxMin = getMaxAndMin(waveform, x, sampleSpacing);
                 const height = scaleY(maxMin.max - maxMin.min, ctx.canvas.height);
                 const ypos = (ctx.canvas.height - height) / 2;
 
-                const xpos = canvas.width * normalise(x, start, end);
+                const xpos = canvas.width * normalise(x, startpx, endpx);
 
                 ctx.fillRect(xpos, ypos, barWidth, height);
             }
@@ -167,7 +173,7 @@
 
                 compositeWaveform = new CompositeWaveform(waveforms);
 
-                const initialValues = [0, compositeWaveform.length];
+                const initialValues = [0, compositeWaveform.duration];
 
                 $("#start").val(initialValues[0]);
                 $("#end").val(initialValues[1]);
@@ -175,7 +181,7 @@
                 $("#slider-range").slider({
                     range: true,
                     min: 0,
-                    max: compositeWaveform.length,
+                    max: compositeWaveform.duration,
                     values: initialValues,
                     slide: function(event, ui) {
                         const start = $("#slider-range").slider("values", 0);
